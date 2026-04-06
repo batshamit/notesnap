@@ -1,0 +1,7 @@
+{
+  "name": "notesnap",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
