@@ -5,9 +5,9 @@
   appName: 'notesnap',
   webDir: 'www'
 };
-*/
-export default config;
 
+export default config;
+*/
 
 // capacitor.config.ts
 import { CapacitorConfig } from '@capacitor/cli';

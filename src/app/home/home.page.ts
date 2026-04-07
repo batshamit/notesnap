@@ -1,37 +1,73 @@
-/*import { Component } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton } from '@ionic/angular/standalone';
-
-@Component({
-  selector: 'app-home',
-  templateUrl: 'home.page.html',
-  styleUrls: ['home.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton],
-})
-export class HomePage {
-  constructor() {}
-}
-*/
-
 import { Component } from '@angular/core';
-import { AlertController } from '@ionic/angular/standalone';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton }
-  from '@ionic/angular/standalone';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Note } from './note.model';
+import { ToastController } from '@ionic/angular/standalone';
+import {
+  IonHeader, IonToolbar, IonTitle, IonContent, IonList,
+  IonItem, IonLabel, IonBadge, IonChip, IonFab, IonFabButton,
+  IonIcon, IonSearchbar, IonButton, 
+  IonSegment, IonSegmentButton
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { add, trash } from 'ionicons/icons';
 
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton],
+  imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle,
+    IonContent, IonList, IonItem, IonLabel, IonBadge, IonChip,
+    IonFab, IonFabButton, IonIcon, IonSearchbar, IonButton,
+    IonSegment, IonSegmentButton],
 })
 export class HomePage {
-  constructor(private alertCtrl: AlertController) {}
+  searchTerm = '';
+  selectedCategory = 'All'; 
 
-  async showAlert() {
-    const alert = await this.alertCtrl.create({
-      header: 'NoteSnap Ready!',
-      message: 'Ionic 8 + Angular 19 is running!',
-      buttons: ['Let\'s Go!'],
-    });
-    await alert.present();
+  // Challenge 1: 4th note added below!
+  notes: Note[] = [
+    { id: '1', title: 'Buy groceries', content: 'Milk, eggs, bread',
+      category: 'Personal', createdAt: new Date() },
+    { id: '2', title: 'Study Angular Signals', content: 'Review signal() docs',
+      category: 'Study', createdAt: new Date() },
+    { id: '3', title: 'Team meeting notes', content: 'Sprint review at 3pm',
+      category: 'Work', createdAt: new Date() },
+    { id: '4', title: 'Complete Ionic Challenges', content: 'Finish Lesson 2 practice tasks',
+      category: 'Study', createdAt: new Date() }
+  ];
+
+  constructor(private toastCtrl: ToastController) {
+    addIcons({ add, trash });
   }
+
+  // Challenge 2: Filter logic for the segment tabs
+  get filteredNotes(): Note[] {
+    let filtered = this.notes;
+
+    if (this.selectedCategory !== 'All') {
+      filtered = filtered.filter(n => n.category === this.selectedCategory);
+    }
+
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(n =>
+        n.title.toLowerCase().includes(term) ||
+        n.content.toLowerCase().includes(term) ||
+        n.category.toLowerCase().includes(term)
+      );
+    }
+
+    return filtered;
+  }
+
+  async deleteNote(id: string) {
+    this.notes = this.notes.filter(n => n.id !== id);
+    const toast = await this.toastCtrl.create({
+      message: 'Note deleted', duration: 1500, color: 'danger', position: 'bottom'
+    });
+    await toast.present();
+  }
+
+  openAddModal() { console.log('Add modal coming in Lesson 4!'); }
 }
