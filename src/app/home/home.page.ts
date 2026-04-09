@@ -7,10 +7,11 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonList,
   IonItem, IonLabel, IonBadge, IonChip, IonFab, IonFabButton,
   IonIcon, IonSearchbar, IonButton, 
-  IonSegment, IonSegmentButton
+  IonSegment, IonSegmentButton,
+  IonMenuButton, IonButtons // <-- NEW IMPORTS FOR LESSON 3
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { add, trash } from 'ionicons/icons';
+import { add, trash, documentText, settings } from 'ionicons/icons'; // <-- ADDED MENU ICONS
 
 @Component({
   selector: 'app-home',
@@ -19,13 +20,13 @@ import { add, trash } from 'ionicons/icons';
   imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle,
     IonContent, IonList, IonItem, IonLabel, IonBadge, IonChip,
     IonFab, IonFabButton, IonIcon, IonSearchbar, IonButton,
-    IonSegment, IonSegmentButton],
+    IonSegment, IonSegmentButton, 
+    IonMenuButton, IonButtons], // <-- ADDED TO IMPORTS ARRAY
 })
 export class HomePage {
   searchTerm = '';
   selectedCategory = 'All'; 
 
-  // Challenge 1: 4th note added below!
   notes: Note[] = [
     { id: '1', title: 'Buy groceries', content: 'Milk, eggs, bread',
       category: 'Personal', createdAt: new Date() },
@@ -38,10 +39,9 @@ export class HomePage {
   ];
 
   constructor(private toastCtrl: ToastController) {
-    addIcons({ add, trash });
+    addIcons({ add, trash, documentText, settings });
   }
 
-  // Challenge 2: Filter logic for the segment tabs
   get filteredNotes(): Note[] {
     let filtered = this.notes;
 
