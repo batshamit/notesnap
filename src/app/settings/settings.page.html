@@ -14,7 +14,9 @@
           <ion-card-content>
             <ion-item>
               <ion-label>Dark Mode</ion-label>
-              <ion-toggle slot="end" (ionChange)="toggleDark($event)"></ion-toggle>
+              
+              <ion-toggle slot="end" [(ngModel)]="isDarkMode" (ionChange)="toggleDark()"></ion-toggle>
+              
             </ion-item>
           </ion-card-content>
         </ion-card>
@@ -36,9 +38,15 @@
         <ion-card>
           <ion-card-header><ion-card-title>Storage</ion-card-title></ion-card-header>
           <ion-card-content>
-            <p>Notes saved: <strong>—</strong></p>
+            <p>Notes saved: <strong>{{ noteCount }}</strong></p>
+            
+            @if (lastAddedDate) {
+              <p>Latest note: <strong>{{ lastAddedDate | date:'mediumDate' }}</strong></p>
+            }
+            
             <p>Version: 1.0.0</p>
-            <ion-button expand="block" color="danger" fill="outline" class="ion-margin-top" (click)="clearAll()">
+            
+            <ion-button expand="block" color="danger" fill="outline" class="ion-margin-top" (click)="confirmClearAll()">
               Clear All Notes
             </ion-button>
           </ion-card-content>

@@ -1,17 +1,21 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Note } from './note.model';
-import { ToastController } from '@ionic/angular/standalone';
+import { NotesService } from '../services/notes';
+import { ToastController, AlertController } from '@ionic/angular/standalone';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonList,
   IonItem, IonLabel, IonBadge, IonChip, IonFab, IonFabButton,
   IonIcon, IonSearchbar, IonButton, 
+  IonMenuButton, IonButtons, IonModal, IonInput, IonTextarea, 
+  IonSelect, IonSelectOption, 
+  IonRadioGroup, IonRadio, IonListHeader, 
   IonSegment, IonSegmentButton,
-  IonMenuButton, IonButtons // <-- NEW IMPORTS FOR LESSON 3
+  IonPopover // <-- 1. Added Popover import!
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { add, trash, documentText, settings } from 'ionicons/icons'; // <-- ADDED MENU ICONS
+import { add, trash, documentText, settings, create, options } from 'ionicons/icons';
 
 @Component({
   selector: 'app-home',
@@ -20,26 +24,36 @@ import { add, trash, documentText, settings } from 'ionicons/icons'; // <-- ADDE
   imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle,
     IonContent, IonList, IonItem, IonLabel, IonBadge, IonChip,
     IonFab, IonFabButton, IonIcon, IonSearchbar, IonButton,
-    IonSegment, IonSegmentButton, 
-    IonMenuButton, IonButtons], // <-- ADDED TO IMPORTS ARRAY
+    IonMenuButton, IonButtons, IonModal, IonInput, IonTextarea, 
+    IonSelect, IonSelectOption, IonRadioGroup, IonRadio, IonListHeader,
+    IonSegment, IonSegmentButton, IonPopover], // <-- 2. Added to imports array
 })
-export class HomePage {
+export class HomePage implements OnInit {
   searchTerm = '';
+  notes: Note[] = [];
+
   selectedCategory = 'All'; 
 
-  notes: Note[] = [
-    { id: '1', title: 'Buy groceries', content: 'Milk, eggs, bread',
-      category: 'Personal', createdAt: new Date() },
-    { id: '2', title: 'Study Angular Signals', content: 'Review signal() docs',
-      category: 'Study', createdAt: new Date() },
-    { id: '3', title: 'Team meeting notes', content: 'Sprint review at 3pm',
-      category: 'Work', createdAt: new Date() },
-    { id: '4', title: 'Complete Ionic Challenges', content: 'Finish Lesson 2 practice tasks',
-      category: 'Study', createdAt: new Date() }
-  ];
+  // --- FILTER VARIABLE (Removed the open/close boolean!) ---
+  sortBy: 'newest' | 'oldest' = 'newest';
 
-  constructor(private toastCtrl: ToastController) {
-    addIcons({ add, trash, documentText, settings });
+  // --- ADD/EDIT MODAL VARIABLES ---
+  isModalOpen = false;
+  editingNoteId: string | null = null;
+  newNoteTitle = '';
+  newNoteContent = '';
+  newNoteCategory: 'Personal' | 'Study' | 'Work' = 'Personal';
+
+  constructor(
+    private toastCtrl: ToastController, 
+    private alertCtrl: AlertController, 
+    private notesService: NotesService
+  ) {
+    addIcons({ add, trash, documentText, settings, create, options });
+  }
+
+  async ngOnInit() {
+    this.notes = await this.notesService.getNotes();
   }
 
   get filteredNotes(): Note[] {
@@ -51,23 +65,92 @@ export class HomePage {
 
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(n =>
-        n.title.toLowerCase().includes(term) ||
-        n.content.toLowerCase().includes(term) ||
-        n.category.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter(n => {
+        const dateStr = n.createdAt.toLocaleDateString().toLowerCase();
+        const monthStr = n.createdAt.toLocaleString('default', { month: 'short' }).toLowerCase();
+
+        return n.title.toLowerCase().includes(term) ||
+               n.content.toLowerCase().includes(term) ||
+               dateStr.includes(term) || 
+               monthStr.includes(term); 
+      });
     }
+
+    filtered.sort((a, b) => {
+      if (this.sortBy === 'newest') {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      } else {
+        return a.createdAt.getTime() - b.createdAt.getTime();
+      }
+    });
 
     return filtered;
   }
 
   async deleteNote(id: string) {
-    this.notes = this.notes.filter(n => n.id !== id);
+    const alert = await this.alertCtrl.create({
+      header: 'Delete Note?',
+      message: 'Are you sure you want to permanently delete this note?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: async () => {
+            await this.notesService.deleteNote(id);
+            this.notes = await this.notesService.getNotes(); 
+            const toast = await this.toastCtrl.create({ message: 'Note deleted', duration: 1500, color: 'danger' });
+            await toast.present();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  openAddModal() {
+    this.editingNoteId = null;
+    this.newNoteTitle = '';
+    this.newNoteContent = '';
+    this.newNoteCategory = 'Personal';
+    this.isModalOpen = true;
+  }
+
+  openEditModal(note: Note) {
+    this.editingNoteId = note.id;
+    this.newNoteTitle = note.title;
+    this.newNoteContent = note.content;
+    this.newNoteCategory = note.category;
+    this.isModalOpen = true;
+  }
+
+  async saveNote() {
+    if (this.editingNoteId) {
+      const alert = await this.alertCtrl.create({
+        header: 'Save Changes?',
+        message: 'Do you want to overwrite this note?',
+        buttons: [
+          { text: 'Discard', role: 'cancel' },
+          { text: 'Save', handler: async () => await this.executeSave() }
+        ]
+      });
+      await alert.present();
+    } else {
+      await this.executeSave();
+    }
+  }
+
+  private async executeSave() {
+    if (this.editingNoteId) {
+      await this.notesService.updateNote(this.editingNoteId, this.newNoteTitle, this.newNoteContent, this.newNoteCategory);
+    } else {
+      await this.notesService.addNote(this.newNoteTitle, this.newNoteContent, this.newNoteCategory);
+    }
+    this.notes = await this.notesService.getNotes();
+    this.isModalOpen = false;
     const toast = await this.toastCtrl.create({
-      message: 'Note deleted', duration: 1500, color: 'danger', position: 'bottom'
+      message: this.editingNoteId ? 'Note updated!' : 'Note saved!', duration: 1500, color: 'success'
     });
     await toast.present();
   }
-
-  openAddModal() { console.log('Add modal coming in Lesson 4!'); }
 }
