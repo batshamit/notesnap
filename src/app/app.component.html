@@ -9,24 +9,35 @@
       </ion-header>
       <ion-content>
         <ion-list>
+          
           <ion-menu-toggle auto-hide="false">
             <ion-item routerLink="/home" routerLinkActive="selected">
               <ion-icon slot="start" name="document-text"></ion-icon>
               <ion-label>Notes</ion-label>
             </ion-item>
           </ion-menu-toggle>
+
           <ion-menu-toggle auto-hide="false">
             <ion-item routerLink="/settings" routerLinkActive="selected">
               <ion-icon slot="start" name="settings"></ion-icon>
               <ion-label>Settings</ion-label>
             </ion-item>
           </ion-menu-toggle>
+
+          <ion-menu-toggle auto-hide="false">
+            <ion-item routerLink="/photo" routerLinkActive="selected">
+              <ion-icon slot="start" name="camera"></ion-icon>
+              <ion-label>Photos</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+
           <ion-menu-toggle auto-hide="false">
             <ion-item routerLink="/about" routerLinkActive="selected">
               <ion-icon slot="start" name="information-circle"></ion-icon>
               <ion-label>About</ion-label>
             </ion-item>
           </ion-menu-toggle>
+          
           </ion-list>
       </ion-content>
     </ion-menu>

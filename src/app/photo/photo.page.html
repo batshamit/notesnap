@@ -1,0 +1,68 @@
+<ion-header>
+  <ion-toolbar color="tertiary">
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>📷 Photo Gallery</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  @if (galleryNotes.length === 0) {
+    <div style="text-align:center; margin-top: 80px;">
+      <ion-icon name="camera" size="large" color="medium"></ion-icon>
+      <ion-text color="medium"><p>No photos yet. Tap the camera button!</p></ion-text>
+    </div>
+  }
+
+  <ion-grid>
+    <ion-row>
+      @for (note of galleryNotes; track note.id) {
+        <ion-col size="12" size-md="6" size-lg="4">
+          <ion-card>
+            <ion-img [src]="note.imageUrl"></ion-img>
+            
+            <ion-card-content>
+              <h3 style="margin-top: 0; color: var(--ion-color-dark);">{{ note.title }}</h3>
+              <p><strong>Taken:</strong> {{ note.createdAt | date:'medium' }}</p>
+              
+              @if (note.latitude) {
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                  <p style="margin-bottom: 5px;"><strong>📍 {{ note.locationName }}</strong></p>
+                  
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <a (click)="openInMaps(note.latitude!, note.longitude!)" style="cursor:pointer; color: var(--ion-color-primary); font-size: 0.9rem; text-decoration: none;">
+                      View on Map ({{ note.latitude | number:'1.4-4' }}, {{ note.longitude | number:'1.4-4' }})
+                    </a>
+                    
+                    <ion-button fill="clear" size="small" color="medium" (click)="copyCoordinates(note.latitude!, note.longitude!)">
+                      <ion-icon name="copy" slot="icon-only"></ion-icon>
+                    </ion-button>
+                  </div>
+                </div>
+              }
+              
+              <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <ion-button fill="clear" color="primary" (click)="sharePhoto(note)">
+                  <ion-icon name="share" slot="start"></ion-icon> Share
+                </ion-button>
+
+                <ion-button fill="clear" color="danger" (click)="removePhoto(note.id)">
+                  <ion-icon name="trash" slot="start"></ion-icon> Delete
+                </ion-button>
+              </div>
+            </ion-card-content>
+
+          </ion-card>
+        </ion-col>
+      }
+    </ion-row>
+  </ion-grid>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button color="tertiary" (click)="presentCameraOptions()" [disabled]="isLoading" style="box-shadow: 0 4px 15px rgba(var(--ion-color-tertiary-rgb), 0.5); border-radius: 30px;">
+      <ion-icon name="camera"></ion-icon>
+      <!-- <strong>Add Photo</strong> -->
+    </ion-fab-button>
+  </ion-fab>
+
+</ion-content>

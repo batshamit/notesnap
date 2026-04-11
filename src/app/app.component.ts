@@ -6,7 +6,7 @@ import {
   IonItem, IonIcon, IonLabel 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { documentText, settings, informationCircle } from 'ionicons/icons';
+import { documentText, settings, informationCircle, camera } from 'ionicons/icons';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +20,6 @@ import { documentText, settings, informationCircle } from 'ionicons/icons';
 })
 export class AppComponent {
   constructor() {
-    addIcons({documentText,settings,informationCircle});
+    addIcons({documentText,settings,informationCircle,camera});
   }
 }

@@ -8,11 +8,9 @@
   <ion-toolbar>
     <ion-searchbar [(ngModel)]="searchTerm" placeholder="Search words or dates..." animated="true" class="ion-no-padding"></ion-searchbar>
     <ion-buttons slot="end" class="ion-padding-end">
-      
       <ion-button id="filter-trigger" fill="solid" color="light">
         <ion-icon name="options"></ion-icon>
       </ion-button>
-      
     </ion-buttons>
   </ion-toolbar>
 
@@ -29,7 +27,15 @@
 <ion-content>
   <ion-list>
     @for (note of filteredNotes; track note.id) {
-      <ion-item>
+      
+      <ion-item button="true" (click)="openViewModal(note)">
+        
+        @if (note.imageUrl) {
+          <ion-thumbnail slot="start">
+            <img [src]="note.imageUrl" style="border-radius: 8px;" />
+          </ion-thumbnail>
+        }
+
         <ion-label>
           <h2>{{ note.title }}</h2>
           <p>{{ note.content }}</p>
@@ -39,10 +45,10 @@
         </ion-label>
         <ion-badge slot="end" color="medium">{{ note.createdAt | date:'shortDate' }}</ion-badge>
         
-        <ion-button slot="end" fill="clear" color="primary" (click)="openEditModal(note)">
+        <ion-button slot="end" fill="clear" color="primary" (click)="$event.stopPropagation(); openEditModal(note)">
           <ion-icon name="create"></ion-icon>
         </ion-button>
-        <ion-button slot="end" fill="clear" color="danger" (click)="deleteNote(note.id)">
+        <ion-button slot="end" fill="clear" color="danger" (click)="$event.stopPropagation(); deleteNote(note.id)">
           <ion-icon name="trash"></ion-icon>
         </ion-button>
       </ion-item>
@@ -59,23 +65,67 @@
     <ng-template>
       <ion-content>
         <ion-list lines="none">
-          <ion-list-header>
-            <ion-label color="primary">Sort By Date</ion-label>
-          </ion-list-header>
+          <ion-list-header><ion-label color="primary">Sort By Date</ion-label></ion-list-header>
           <ion-radio-group [(ngModel)]="sortBy">
-            <ion-item>
-              <ion-radio value="newest">Newest First</ion-radio>
-            </ion-item>
-            <ion-item>
-              <ion-radio value="oldest">Oldest First</ion-radio>
-            </ion-item>
+            <ion-item><ion-radio value="newest">Newest First</ion-radio></ion-item>
+            <ion-item><ion-radio value="oldest">Oldest First</ion-radio></ion-item>
           </ion-radio-group>
         </ion-list>
       </ion-content>
     </ng-template>
   </ion-popover>
 
-  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1]">
+  <ion-modal [isOpen]="isViewModalOpen" (didDismiss)="isViewModalOpen = false">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>View Note</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isViewModalOpen = false">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        @if (viewingNote) {
+          
+          <div class="ion-margin-bottom">
+            <h1 style="margin-bottom: 5px; margin-top: 0;">{{ viewingNote.title }}</h1>
+            <ion-chip style="margin-left: 0;" [color]="viewingNote.category === 'Work' ? 'danger' : viewingNote.category === 'Study' ? 'tertiary' : 'secondary'">
+              {{ viewingNote.category }}
+            </ion-chip>
+            <ion-text color="medium">
+              <p style="margin-top: 8px; font-size: 0.9rem;">
+                <ion-icon name="calendar" style="vertical-align: text-bottom; margin-right: 4px;"></ion-icon>
+                {{ viewingNote.createdAt | date:'medium' }}
+              </p>
+            </ion-text>
+          </div>
+
+          @if (viewingNote.imageUrl) {
+            <div class="ion-text-center ion-margin-bottom ion-margin-top" (click)="openImageViewer(viewingNote.imageUrl)" style="cursor: pointer;">
+              <img [src]="viewingNote.imageUrl" style="max-height: 300px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />
+              <p style="margin-top: 5px; color: var(--ion-color-medium); font-size: 0.85rem;">Tap image to view full screen</p>
+            </div>
+          }
+
+          <div style="font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap; margin-top: 20px;">
+            {{ viewingNote.content }}
+          </div>
+          
+          <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+            <ion-fab-button (click)="openEditModal(viewingNote)">
+              <ion-icon name="create"></ion-icon>
+            </ion-fab-button>
+          </ion-fab>
+
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
     <ng-template>
       <ion-header>
         <ion-toolbar color="primary">
@@ -85,8 +135,16 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      
       <ion-content class="ion-padding">
+        @if (newNoteImageUrl) {
+          <div class="ion-text-center ion-margin-bottom">
+            <img [src]="newNoteImageUrl" style="max-height: 200px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />
+          </div>
+        }
+        <ion-button expand="block" fill="outline" color="primary" class="ion-margin-bottom" (click)="takePicture()">
+          <ion-icon name="camera" slot="start"></ion-icon>
+          {{ newNoteImageUrl ? 'Change Photo' : 'Attach Photo' }}
+        </ion-button>
         <ion-item><ion-input label="Title" labelPlacement="floating" [(ngModel)]="newNoteTitle"></ion-input></ion-item>
         <ion-item><ion-textarea label="Content" labelPlacement="floating" [(ngModel)]="newNoteContent" rows="4"></ion-textarea></ion-item>
         <ion-item>
@@ -96,10 +154,34 @@
             <ion-select-option value="Work">Work</ion-select-option>
           </ion-select>
         </ion-item>
-        
-        <ion-button expand="block" class="ion-margin-top" (click)="saveNote()" [disabled]="!newNoteTitle || !newNoteContent">
-          {{ editingNoteId ? 'Update Note' : 'Save Note' }}
-        </ion-button>
+      </ion-content>
+      <ion-footer>
+        <ion-toolbar class="ion-padding-horizontal ion-padding-bottom">
+          <ion-button expand="block" (click)="saveNote()" [disabled]="!newNoteTitle || !newNoteContent">
+            {{ editingNoteId ? 'Update Note' : 'Save Note' }}
+          </ion-button>
+        </ion-toolbar>
+      </ion-footer>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isImageViewerOpen" (didDismiss)="isImageViewerOpen = false">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar color="dark">
+          <ion-buttons slot="end">
+            <ion-button (click)="isImageViewerOpen = false">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content color="dark">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 10px;">
+          @if (viewerImageUrl) {
+            <img [src]="viewerImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+          }
+        </div>
       </ion-content>
     </ng-template>
   </ion-modal>

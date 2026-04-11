@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Note } from './note.model';
-import { NotesService } from '../services/notes';
+import { NotesService } from '../services/notes'; // <-- Fixed the import for you!
 import { ToastController, AlertController } from '@ionic/angular/standalone';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonList,
@@ -11,45 +11,51 @@ import {
   IonMenuButton, IonButtons, IonModal, IonInput, IonTextarea, 
   IonSelect, IonSelectOption, 
   IonRadioGroup, IonRadio, IonListHeader, 
-  IonSegment, IonSegmentButton,
-  IonPopover // <-- 1. Added Popover import!
+  IonSegment, IonSegmentButton, IonPopover,
+  IonThumbnail, IonFooter, IonText
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { add, trash, documentText, settings, create, options } from 'ionicons/icons';
+import { add, trash, documentText, settings, create, options, camera, close, calendar } from 'ionicons/icons';
 
 @Component({
   selector: 'app-home',
-  templateUrl: 'home.page.html',
+  templateUrl: 'home.page.html', // <-- Points to the correct HTML!
   standalone: true,
   imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle,
     IonContent, IonList, IonItem, IonLabel, IonBadge, IonChip,
     IonFab, IonFabButton, IonIcon, IonSearchbar, IonButton,
     IonMenuButton, IonButtons, IonModal, IonInput, IonTextarea, 
     IonSelect, IonSelectOption, IonRadioGroup, IonRadio, IonListHeader,
-    IonSegment, IonSegmentButton, IonPopover], // <-- 2. Added to imports array
+    IonSegment, IonSegmentButton, IonPopover, IonThumbnail, IonFooter, IonText],
 })
 export class HomePage implements OnInit {
   searchTerm = '';
   notes: Note[] = [];
-
   selectedCategory = 'All'; 
-
-  // --- FILTER VARIABLE (Removed the open/close boolean!) ---
   sortBy: 'newest' | 'oldest' = 'newest';
 
-  // --- ADD/EDIT MODAL VARIABLES ---
   isModalOpen = false;
   editingNoteId: string | null = null;
   newNoteTitle = '';
   newNoteContent = '';
   newNoteCategory: 'Personal' | 'Study' | 'Work' = 'Personal';
+  newNoteImageUrl?: string; 
+  newNoteLatitude?: number;
+  newNoteLongitude?: number;
+  newNoteLocationName?: string;
+
+  isImageViewerOpen = false;
+  viewerImageUrl: string | null = null;
+
+  isViewModalOpen = false;
+  viewingNote: Note | null = null;
 
   constructor(
     private toastCtrl: ToastController, 
     private alertCtrl: AlertController, 
     private notesService: NotesService
   ) {
-    addIcons({ add, trash, documentText, settings, create, options });
+    addIcons({ add, trash, documentText, settings, create, options, camera, close, calendar });
   }
 
   async ngOnInit() {
@@ -68,11 +74,9 @@ export class HomePage implements OnInit {
       filtered = filtered.filter(n => {
         const dateStr = n.createdAt.toLocaleDateString().toLowerCase();
         const monthStr = n.createdAt.toLocaleString('default', { month: 'short' }).toLowerCase();
-
         return n.title.toLowerCase().includes(term) ||
                n.content.toLowerCase().includes(term) ||
-               dateStr.includes(term) || 
-               monthStr.includes(term); 
+               dateStr.includes(term) || monthStr.includes(term); 
       });
     }
 
@@ -87,6 +91,42 @@ export class HomePage implements OnInit {
     return filtered;
   }
 
+  openViewModal(note: Note) {
+    this.viewingNote = note;
+    this.isViewModalOpen = true;
+  }
+
+  openImageViewer(url: string) {
+    this.viewerImageUrl = url;
+    this.isImageViewerOpen = true;
+  }
+
+  async takePicture() {
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const { Geolocation } = await import('@capacitor/geolocation');
+
+      const image = await Camera.getPhoto({
+        quality: 80, allowEditing: false, resultType: CameraResultType.DataUrl, source: CameraSource.Prompt
+      });
+      this.newNoteImageUrl = image.dataUrl; 
+
+      /* --- TEMPORARILY DISABLED FOR WEB TESTING ---
+      try {
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+        this.newNoteLatitude = pos.coords.latitude;
+        this.newNoteLongitude = pos.coords.longitude;
+        this.newNoteLocationName = await this.notesService.getLocationName(pos.coords.latitude, pos.coords.longitude);
+      } catch (e) {
+        console.log("Could not get location");
+      }
+      ----------------------------------------------- */
+
+    } catch (error) {
+      console.log('User cancelled taking a photo');
+    }
+  }
+
   async deleteNote(id: string) {
     const alert = await this.alertCtrl.create({
       header: 'Delete Note?',
@@ -94,11 +134,13 @@ export class HomePage implements OnInit {
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Delete',
-          role: 'destructive',
+          text: 'Delete', role: 'destructive',
           handler: async () => {
             await this.notesService.deleteNote(id);
             this.notes = await this.notesService.getNotes(); 
+            if (this.viewingNote?.id === id) {
+              this.isViewModalOpen = false;
+            }
             const toast = await this.toastCtrl.create({ message: 'Note deleted', duration: 1500, color: 'danger' });
             await toast.present();
           }
@@ -113,6 +155,10 @@ export class HomePage implements OnInit {
     this.newNoteTitle = '';
     this.newNoteContent = '';
     this.newNoteCategory = 'Personal';
+    this.newNoteImageUrl = undefined;
+    this.newNoteLatitude = undefined;
+    this.newNoteLongitude = undefined;
+    this.newNoteLocationName = undefined;
     this.isModalOpen = true;
   }
 
@@ -121,6 +167,11 @@ export class HomePage implements OnInit {
     this.newNoteTitle = note.title;
     this.newNoteContent = note.content;
     this.newNoteCategory = note.category;
+    this.newNoteImageUrl = note.imageUrl;
+    this.newNoteLatitude = note.latitude;
+    this.newNoteLongitude = note.longitude;
+    this.newNoteLocationName = note.locationName;
+    this.isViewModalOpen = false; 
     this.isModalOpen = true;
   }
 
@@ -142,15 +193,18 @@ export class HomePage implements OnInit {
 
   private async executeSave() {
     if (this.editingNoteId) {
-      await this.notesService.updateNote(this.editingNoteId, this.newNoteTitle, this.newNoteContent, this.newNoteCategory);
+      await this.notesService.updateNote(this.editingNoteId, this.newNoteTitle, this.newNoteContent, this.newNoteCategory, this.newNoteImageUrl, this.newNoteLatitude, this.newNoteLongitude, this.newNoteLocationName);
     } else {
-      await this.notesService.addNote(this.newNoteTitle, this.newNoteContent, this.newNoteCategory);
+      await this.notesService.addNote(this.newNoteTitle, this.newNoteContent, this.newNoteCategory, this.newNoteImageUrl, this.newNoteLatitude, this.newNoteLongitude, this.newNoteLocationName);
     }
     this.notes = await this.notesService.getNotes();
     this.isModalOpen = false;
-    const toast = await this.toastCtrl.create({
-      message: this.editingNoteId ? 'Note updated!' : 'Note saved!', duration: 1500, color: 'success'
-    });
+    
+    if (this.viewingNote && this.viewingNote.id === this.editingNoteId) {
+      this.viewingNote = this.notes.find(n => n.id === this.editingNoteId) || null;
+    }
+
+    const toast = await this.toastCtrl.create({ message: this.editingNoteId ? 'Note updated!' : 'Note saved!', duration: 1500, color: 'success' });
     await toast.present();
   }
 }
